@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.12.0/css/ol.css"
+    type="text/css">
+  <style>
+    .container {
+      position: relative;
+    }
+
+    .mapDiv {
+      height: 600px;
+      width: 800px;
+      /* position: absolute;
+      top: 0;
+      left: 0; 
+      */
+    }
+
+    .overlay {
+      height: 600px;
+      width: 800px;
+      position: absolute;
+      top: 0px;
+      left: 0px;
+    }
+
+    .details {
+      font-family: Arial, Helvetica, sans-serif;
+      /*position: fixed;
+      top: 30;
+      left: 80;
+      */
+    }
+
+    .filter-wrapper{
+      margin: 25px 0px;
+    }
+
+    .filter-wrapper select{
+      margin-right: 25px;
+      text-transform: capitalize;
+    }
+
+  </style>
+  <script src="https://cdn.jsdelivr.net/gh/openlayers/openlayers.github.io@master/en/v6.12.0/build/ol.js"></script>
+  <!-- P5 -->
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.2.0/lib/p5.js"></script>
+  <title>KASP Isolates</title>
+</head>
+
+<body>
+  <h2>KASP Isolates</h2>
+
+  <div class="filter-wrapper">
+    <label for="year">Select Year :</label>
+    <select name="year" id="year">
+
+    </select>
+
+    <label for="county">Select County :</label>
+    <select name="county" id="county">
+    </select>
+
+    <label for="region">Select Region :</label>
+    <select name="region" id="region">
+    </select>
+
+    <label for="species">Select Species :</label>
+    <select name="species" id="species">
+    </select>
+
+    <label for="colorScale">Colouring Pattern :</label>
+    <select name="colorScale" id="colorScale">
+      <option value='default'>Default</option>
+      <option value='incidence'>Incidence</option>
+    </select>
+
+  </div>
+
+
+
+
+  <div id="container" class="container">
+    <div id="mapDiv" class="mapDiv"></div>
+    <div id="overlay" class="overlay"></div>
+  </div>
+  <div id="details" class="details">
+    Click on a red circle to see details from that location...
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/lodash@4.17.21/lodash.min.js"></script>
+  <script src="KASP-isolates-locations.js"></script>
+  <script src="Dot.js"></script>
+  <script src="map-canvas.js"></script>
+
+
+</body>
+
+</html>
