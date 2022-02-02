@@ -13,9 +13,6 @@ let mapObj = new ol.Map({
 
 let view = mapObj.getView();
 
-
-let colorScaleDynamic = false;
-
 let canv;
 let mapLat;
 let mapLon;
@@ -44,19 +41,17 @@ let headers = ["Field Number", "Year", "Site Accession", "Region", "County", "MD
     "DB Culture ID", "AvrLm_Genotype", "Species (Kcpn60 marker)", "Northing", "Easting", "locmult", "Legal Land Location"];
 
 
-let year
-
-
 let locations = new Map();
 let line;
-//let currentLoc = lines[0][12];
 let currentLoc = "";
-//console.log(currentLoc);
 let locationMap = new Map();
-//locationMap.set(currentLoc,[]);
-//locations.set(currentLoc,ol.proj.fromLonLat([line[11], line[10]]))
 let recordString;
 
+// Remap lines so that the virulent genes are in a sorted array for easier handling
+lines = _.map(lines, (d) => {
+    d[8] = d[8].split('-').sort((a, b) => (+b) - (+a));
+    return d;
+});
 
 let linesClone = [...lines];
 
@@ -93,6 +88,11 @@ const years = _.keys(_.groupBy(lines, (d) => d[1])),
     counties = _.keys(_.groupBy(lines, (d) => d[4])),
     regions = _.keys(_.groupBy(lines, (d) => d[3]))
 species = _.keys(_.groupBy(lines, (d) => d[9]));
+// To get a list of avirulent genes, first get all unique gene lists
+// then flatten them into a single list and then pick the unique ones
+const genes = _.filter(_.uniq(_.flatMap(_.keys(_.groupBy(lines,
+    (d) => d[8]))
+    .map((e) => e.split(',')))), (f) => f.length > 0);
 
 
 function addOptions(key, values, dataIndex) {
@@ -105,11 +105,18 @@ function addOptions(key, values, dataIndex) {
 
     selectHTML.addEventListener('change', function (event) {
         let val = event.target.value;
+
         if (val == 'All') {
             linesClone = [...lines];
         }
         else {
-            linesClone = _.filter(lines, (d) => d[dataIndex] == val);
+            // For genes select filter a line if it contains the gene in its list
+            if (event.target.id == 'genes') {
+                linesClone = _.filter(lines, (d) => d[8].indexOf(val) > -1);
+            }
+            else {
+                linesClone = _.filter(lines, (d) => d[dataIndex] == val);
+            }
         }
         processLines();
         resetAllExcept(key);
@@ -118,7 +125,7 @@ function addOptions(key, values, dataIndex) {
 }
 
 function resetAllExcept(exceptKey) {
-    let keys = ['year', 'county', 'region', 'species'];
+    let keys = ['years', 'county', 'region', 'species'];
     _.filter(keys, (d) => d != exceptKey).map((k) => {
         document.getElementById(k).value = 'All';
     });
@@ -145,28 +152,16 @@ function setup() {
 
     d = 5;
     zoomLevel = view.getZoom();
+    
 
     processLines();
 
-    addOptions('year', ['All', ...years], 1);
+    addOptions('years', ['All', ...years], 1);
     addOptions('county', ['All', ...counties], 4);
     addOptions('region', ['All', ...regions], 3);
     addOptions('species', ['All', ...species], 9);
-
-    document.getElementById('colorScale').addEventListener('change', function (event) {
-        let val = event.target.value;
-
-
-        if (val == 'default') {
-            window.colorScaleDynamic = false;
-        }
-        else {
-            window.colorScaleDynamic = true;
-        }
-
-    
-    }, false);
-
+    addOptions('genes', ['All', ...genes], 8);
+    attachLocationClick(view);
 }
 
 function draw() {
@@ -198,47 +193,13 @@ function draw() {
         //ellipse(pixel[0], pixel[1], rd, rd);
     }
 
-    // draw locations
-    // for (let i = 0; i < locations.length; i++) {
-    //     pixel = mapObj.getPixelFromCoordinate(locations[i]);
-    //     if (pixel != null) {
-    //         if (lines[i][9] === "biglobosa") {
-    //             fill(0,0,200);
-    //         }
-    //         if (lines[i][9] === "maculans") {
-    //             fill(200,0,0);
-    //         }
-    //         rd = map(zoomLevel, 1.0, 10.0, d, d * 2);
-    //         //ellipse(pixel[0], pixel[1], rd, rd);
-    //         ellipse(pixel[0], pixel[1], 4,4);
-    //     }    
-    // }
     fill(200, 0, 0);
 
     for (const locationKey of locationMap.keys()) {
-        locations.get(locationKey).drawDot(colorScaleDynamic);
-        //console.log(locationKey);
-        //console.log(locations.get(locationKey));
-        // pixel = mapObj.getPixelFromCoordinate(locations.get(locationKey));
-        // if (pixel != null) {
-        //     rd = map(zoomLevel, 1.0, 10.0, d, d * 2);
-        //     //ellipse(pixel[0], pixel[1], rd, rd);
-        //     ellipse(pixel[0], pixel[1], 4,4);
-        // }    
+        locations.get(locationKey).drawDot();
     }
 }
 
-function mouseMoved() {
-    //view.setZoom(map(constrain(mouseX, 0, width), 0, width, 1.2, 10.0));
-    //zoomLevel = view.getZoom();
-    //console.log(mouseX,mouseY);
-    // for (const locationKey of locationMap.keys()) {
-    //     if (locations.get(locationKey).checkHit(mouseX,mouseY)) {
-    //         console.log(locationKey);
-    //     }
-    // }
-
-}
 
 function mousePressed() {
     startCoord = mapObj.getCoordinateFromPixel([mouseX, mouseY]);
@@ -310,22 +271,40 @@ function changeZoom(event) {
     }
 }
 
-// function keyTyped() {
-//     console.log("current zoom: " + view.getZoom());
-//     if (key == 'f') {
-//         mapXCoord -= 10000;
-//         view.setCenter([mapXCoord,mapYCoord]);
-//     }
-//     if (!zoomingIn && !zoomingOut) {
-//         if (key == 'a') {
-//             zoomingIn = true;
-//         }
-//         if (key == 'z') {
-//             // min zoom seems to be 1.2288186904958809, so don't go past that
-//             if (zoomLevel > 4) {
-//                 zoomingOut = true;
-//             }
-//         }
-//         zoomFrameCount = 0;
-//     }
-// }
+
+function attachLocationClick() {
+    document.getElementById('center-map-button').addEventListener('click', () => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                mapCoord = ol.proj.fromLonLat([pos.coords.longitude, pos.coords.latitude]);
+                mapLat = 52.871772;
+                mapLon = -113.933344;
+                mapXCoord = mapCoord[0];
+                mapYCoord = mapCoord[1];
+                view.setCenter([mapCoord[0], mapCoord[1]]);
+            });
+        } else {
+            alert("Geolocation is not supported by your browser.");
+        }
+    });
+
+    document.getElementById('reset-button').addEventListener('click',()=>{
+        //reset filters
+        resetAllExcept();
+        // reset lines
+        linesClone = [...lines];
+        processLines();
+        // reset map
+        mapCoord = ol.proj.fromLonLat([-113.933344, 52.871772]);
+        mapLat = 52.871772;
+        mapLon = -113.933344;
+        mapXCoord = mapCoord[0];
+        mapYCoord = mapCoord[1];
+        view.setCenter([mapCoord[0], mapCoord[1]]);
+        view.setZoom(5);
+        // reset details box 
+        document.getElementById("details").innerHTML = 'Click on a circle to see details from that location...';
+    });
+
+    
+}
