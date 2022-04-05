@@ -62,24 +62,23 @@ function processLines() {
 
     for (let i = 0; i < linesClone.length; i++) {
         line = linesClone[i];
-        if (currentLoc === line[12]) {
+
+        let line_loc = line[10] + ' ' + line[11];
+        if (currentLoc === line_loc) {
             // same location
             recordString = line[13] + " " + line[1] + " " + line[9] + " (" + line[8] + ") " + " Incidence:" +
                 line[6] + " MDS:" + line[5];
             locationMap.get(currentLoc).push(recordString);
         } else {
             // new location
-            currentLoc = line[12];
+            currentLoc = line_loc;
             locationMap.set(currentLoc, []);
             recordString = line[13] + " " + line[1] + " " + line[9] + " (" + line[8] + ") " + " Incidence:" +
                 line[6] + " MDS:" + line[5];
             locationMap.get(currentLoc).push(recordString);
-            //locations.set(currentLoc,ol.proj.fromLonLat([line[11], line[10]]));
             locations.set(currentLoc, new Dot(line));
-            //console.log(locations.get(currentLoc));
         }
     }
-
 }
 
 
@@ -152,7 +151,7 @@ function setup() {
 
     d = 5;
     zoomLevel = view.getZoom();
-    
+
 
     processLines();
 
@@ -288,7 +287,7 @@ function attachLocationClick() {
         }
     });
 
-    document.getElementById('reset-button').addEventListener('click',()=>{
+    document.getElementById('reset-button').addEventListener('click', () => {
         //reset filters
         resetAllExcept();
         // reset lines
@@ -306,5 +305,5 @@ function attachLocationClick() {
         document.getElementById("details").innerHTML = 'Click on a circle to see details from that location...';
     });
 
-    
+
 }
